@@ -1,7 +1,6 @@
 package database
 
 import (
-    "app/src/config"
     "app/src/utils"
     "fmt"
     "os"
