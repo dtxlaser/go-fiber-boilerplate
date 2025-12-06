@@ -15,26 +15,27 @@ import (
 func Connect() *gorm.DB {
     var dsn string
 
-    // Prefer DATABASE_URL if set (Supabase)
-    databaseURL := os.Getenv("DATABASE_URL")
-    if databaseURL != "" {
-        dsn = databaseURL + " sslmode=require"
-    } else {
-        // fallback to individual env vars
-        port, err := strconv.Atoi(os.Getenv("DB_PORT"))
-        if err != nil {
-            utils.Log.Fatalf("Invalid DB_PORT: %v", err)
-        }
-
-        dsn = fmt.Sprintf(
-            "host=%s user=%s password=%s dbname=%s port=%d sslmode=require TimeZone=Asia/Shanghai",
-            os.Getenv("DB_HOST"),
-            os.Getenv("DB_USER"),
-            os.Getenv("DB_PASSWORD"),
-            os.Getenv("DB_NAME"),
-            port,
-        )
+// Prefer DATABASE_URL if set (Supabase)
+databaseURL := os.Getenv("DATABASE_URL")
+if databaseURL != "" {
+    // Supabase requires sslmode=require
+    dsn = databaseURL + "?sslmode=require"
+} else {
+    // fallback to individual env vars
+    port, err := strconv.Atoi(os.Getenv("DB_PORT"))
+    if err != nil {
+        utils.Log.Fatalf("Invalid DB_PORT: %v", err)
     }
+
+    dsn = fmt.Sprintf(
+        "host=%s user=%s password=%s dbname=%s port=%d sslmode=require TimeZone=Asia/Shanghai",
+        os.Getenv("DB_HOST"),
+        os.Getenv("DB_USER"),
+        os.Getenv("DB_PASSWORD"),
+        os.Getenv("DB_NAME"),
+        port,
+    )
+}
 
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
         Logger:                 logger.Default.LogMode(logger.Info),
