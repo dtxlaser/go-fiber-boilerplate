@@ -1,61 +1,54 @@
 package database
 
 import (
-    "app/src/utils"
-    "fmt"
-    "os"
-    "strconv"
-    "time"
+	"log"
+	"os"
+	"strings"
+	"time"
 
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
-    "gorm.io/gorm/logger"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
+// Connect connects to Supabase/Postgres database using DATABASE_URL
 func Connect() *gorm.DB {
-    var dsn string
+	// Get connection string from environment
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL is not set in the environment")
+	}
 
-// Prefer DATABASE_URL if set (Supabase)
-databaseURL := os.Getenv("DATABASE_URL")
-if databaseURL != "" {
-    // Supabase requires sslmode=require
-    dsn = databaseURL + "?sslmode=require"
-} else {
-    // fallback to individual env vars
-    port, err := strconv.Atoi(os.Getenv("DB_PORT"))
-    if err != nil {
-        utils.Log.Fatalf("Invalid DB_PORT: %v", err)
-    }
+	// Ensure sslmode=require for Supabase
+	if !strings.Contains(dsn, "sslmode") {
+		if strings.Contains(dsn, "?") {
+			dsn += "&sslmode=require"
+		} else {
+			dsn += "?sslmode=require"
+		}
+	}
 
-    dsn = fmt.Sprintf(
-        "host=%s user=%s password=%s dbname=%s port=%d sslmode=require TimeZone=Asia/Shanghai",
-        os.Getenv("DB_HOST"),
-        os.Getenv("DB_USER"),
-        os.Getenv("DB_PASSWORD"),
-        os.Getenv("DB_NAME"),
-        port,
-    )
-}
+	// Open Gorm DB
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger:                 logger.Default.LogMode(logger.Info),
+		SkipDefaultTransaction: true,
+		PrepareStmt:            true,
+		TranslateError:         true,
+	})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %+v", err)
+	}
 
-    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-        Logger:                 logger.Default.LogMode(logger.Info),
-        SkipDefaultTransaction: true,
-        PrepareStmt:            true,
-        TranslateError:         true,
-    })
-    if err != nil {
-        utils.Log.Fatalf("Failed to connect to database: %+v", err)
-    }
+	// Get underlying sql.DB for connection pool config
+	sqlDB, errDB := db.DB()
+	if errDB != nil {
+		log.Fatalf("Failed to get DB instance: %+v", errDB)
+	}
 
-    sqlDB, errDB := db.DB()
-    if errDB != nil {
-        utils.Log.Fatalf("Failed to get DB instance: %+v", errDB)
-    }
+	// Connection pool settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(60 * time.Minute)
 
-    // Connection pooling
-    sqlDB.SetMaxIdleConns(10)
-    sqlDB.SetMaxOpenConns(100)
-    sqlDB.SetConnMaxLifetime(60 * time.Minute)
-
-    return db
+	return db
 }
