@@ -9,7 +9,7 @@
         },
         "version": "1.0.0"
     },
-    "host": "emqx-gofiber-cosg2h-8b0584-72-60-194-30.traefik.me:3000",
+    "host": "localhost:3000",
     "basePath": "/v1",
     "paths": {
         "/auth/forgot-password": {
