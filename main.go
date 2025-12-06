@@ -61,7 +61,7 @@ func setupFiberApp() *fiber.App {
 }
 
 func setupDatabase() *gorm.DB {
-	db := database.Connect(config.DBHost, config.DBName)
+	db := database.Connect()
 	// Add any additional database setup if needed
 	return db
 }
