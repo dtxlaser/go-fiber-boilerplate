@@ -1,9 +1,8 @@
 package database
 
 import (
-	"log"
-	"os"
-	"strings"
+	"app/src/utils"
+	"fmt"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -11,24 +10,12 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Connect connects to Supabase/Postgres database using DATABASE_URL
-func Connect() *gorm.DB {
-	// Get connection string from environment
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Fatal("DATABASE_URL is not set in the environment")
-	}
+func Connect(dbHost, dbName string) *gorm.DB {
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Shanghai",
+		dbHost, config.DBUser, config.DBPassword, dbName, config.DBPort,
+	)
 
-	// Ensure sslmode=require for Supabase
-	if !strings.Contains(dsn, "sslmode") {
-		if strings.Contains(dsn, "?") {
-			dsn += "&sslmode=require"
-		} else {
-			dsn += "?sslmode=require"
-		}
-	}
-
-	// Open Gorm DB
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger:                 logger.Default.LogMode(logger.Info),
 		SkipDefaultTransaction: true,
@@ -36,16 +23,15 @@ func Connect() *gorm.DB {
 		TranslateError:         true,
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %+v", err)
+		utils.Log.Errorf("Failed to connect to database: %+v", err)
 	}
 
-	// Get underlying sql.DB for connection pool config
 	sqlDB, errDB := db.DB()
 	if errDB != nil {
-		log.Fatalf("Failed to get DB instance: %+v", errDB)
+		utils.Log.Errorf("Failed to connect to database: %+v", errDB)
 	}
 
-	// Connection pool settings
+	// Config connection pooling
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(60 * time.Minute)
