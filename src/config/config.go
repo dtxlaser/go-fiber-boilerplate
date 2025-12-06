@@ -1,9 +1,9 @@
 package config
 
 import (
-	"app/src/utils"
-
-	"github.com/spf13/viper"
+	"log"
+	"os"
+	"strconv"
 )
 
 var (
@@ -31,54 +31,42 @@ var (
 )
 
 func init() {
-	loadConfig()
+	var err error
 
 	// server configuration
-	IsProd = viper.GetString("APP_ENV") == "prod"
-	AppHost = viper.GetString("APP_HOST")
-	AppPort = viper.GetInt("APP_PORT")
+	IsProd = os.Getenv("APP_ENV") == "prod"
+	AppHost = os.Getenv("APP_HOST")
+	AppPort, err = strconv.Atoi(os.Getenv("APP_PORT"))
+	if err != nil {
+		log.Fatalf("Invalid APP_PORT: %v", err)
+	}
 
 	// database configuration
-	DBHost = viper.GetString("DB_HOST")
-	DBUser = viper.GetString("DB_USER")
-	DBPassword = viper.GetString("DB_PASSWORD")
-	DBName = viper.GetString("DB_NAME")
-	DBPort = viper.GetInt("DB_PORT")
+	DBHost = os.Getenv("DB_HOST")
+	DBUser = os.Getenv("DB_USER")
+	DBPassword = os.Getenv("DB_PASSWORD")
+	DBName = os.Getenv("DB_NAME")
+	DBPort, err = strconv.Atoi(os.Getenv("DB_PORT"))
+	if err != nil {
+		log.Fatalf("Invalid DB_PORT: %v", err)
+	}
 
 	// jwt configuration
-	JWTSecret = viper.GetString("JWT_SECRET")
-	JWTAccessExp = viper.GetInt("JWT_ACCESS_EXP_MINUTES")
-	JWTRefreshExp = viper.GetInt("JWT_REFRESH_EXP_DAYS")
-	JWTResetPasswordExp = viper.GetInt("JWT_RESET_PASSWORD_EXP_MINUTES")
-	JWTVerifyEmailExp = viper.GetInt("JWT_VERIFY_EMAIL_EXP_MINUTES")
+	JWTSecret = os.Getenv("JWT_SECRET")
+	JWTAccessExp, _ = strconv.Atoi(os.Getenv("JWT_ACCESS_EXP_MINUTES"))
+	JWTRefreshExp, _ = strconv.Atoi(os.Getenv("JWT_REFRESH_EXP_DAYS"))
+	JWTResetPasswordExp, _ = strconv.Atoi(os.Getenv("JWT_RESET_PASSWORD_EXP_MINUTES"))
+	JWTVerifyEmailExp, _ = strconv.Atoi(os.Getenv("JWT_VERIFY_EMAIL_EXP_MINUTES"))
 
 	// SMTP configuration
-	SMTPHost = viper.GetString("SMTP_HOST")
-	SMTPPort = viper.GetInt("SMTP_PORT")
-	SMTPUsername = viper.GetString("SMTP_USERNAME")
-	SMTPPassword = viper.GetString("SMTP_PASSWORD")
-	EmailFrom = viper.GetString("EMAIL_FROM")
+	SMTPHost = os.Getenv("SMTP_HOST")
+	SMTPPort, _ = strconv.Atoi(os.Getenv("SMTP_PORT"))
+	SMTPUsername = os.Getenv("SMTP_USERNAME")
+	SMTPPassword = os.Getenv("SMTP_PASSWORD")
+	EmailFrom = os.Getenv("EMAIL_FROM")
 
 	// oauth2 configuration
-	GoogleClientID = viper.GetString("GOOGLE_CLIENT_ID")
-	GoogleClientSecret = viper.GetString("GOOGLE_CLIENT_SECRET")
-	RedirectURL = viper.GetString("REDIRECT_URL")
-}
-
-func loadConfig() {
-	configPaths := []string{
-		"./",     // For app
-		"../../", // For test folder
-	}
-
-	for _, path := range configPaths {
-		viper.SetConfigFile(path + ".env")
-
-		if err := viper.ReadInConfig(); err == nil {
-			utils.Log.Infof("Config file loaded from %s", path)
-			return
-		}
-	}
-
-	utils.Log.Error("Failed to load any config file")
+	GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
+	GoogleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
+	RedirectURL = os.Getenv("REDIRECT_URL")
 }
